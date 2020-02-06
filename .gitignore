@@ -1,0 +1,15 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/board
+board.so
+board.dylib
+board.dll
+board.a
+board.lib
+board-test-*
+*.exe
+*.o
+*.obj
+*.lst
