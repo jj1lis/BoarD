@@ -1,67 +1,105 @@
 module board.base;
 
+import std.typecons;
+
+struct Matrix{
+    private:
+    size_t _raw;
+    size_t _column;
+
+    public:
+    @property{
+        auto raw(){return _raw;}
+        auto column(){return _column;}
+    }
+
+    this(size_t _raw,size_t _column){
+        this._raw=_raw;
+        this._column=_column;
+    }
+}
+
 class Board(T_Piece){
+    import std.stdio;
+
     private:
     T_Piece[Matrix] _squares;
     Matrix[] _exists_squares;
 
-    string _back_color="\330[42m";
-    string _char_color="\330[30m";
+    BackColor _back_color=BackColor.green;
+    CharColor _char_color=CharColor.black;
     auto _writeln(string text){
-        import std.stdio:writeln;
-        writeln(_back_color~_char_color~text~"\330[0m");
+        writeln(_back_color~_char_color~text~"\033[0m");
     }
 
     public:
 
-    alias Tuple!(Matrix,T_Piece) TMP;//Tuple of Matrix and Piece
+    alias TMP=Tuple!(Matrix,T_Piece);//Tuple of Matrix and Piece
 
     invariant(_squares.length==_exists_squares.length);
 
     @property{
         auto squares(){return _squares;}
         auto exists_squares(){return _exists_squares;}
-
         auto square(Matrix matrix){
-            if(!this.exists(matrix)){
-                return null;
-            }else{
+            import core.exception;
+            try{
                 return _squares[matrix];
+            }catch(RangeError re){
+                throw new NoMatrixException(matrix);
             }
         }
+        auto back_color(BackColor c){_back_color=c;}
+        auto char_color(CharColor c){_char_color=c;}
     }
 
-    struct Matrix{
-        private:
-        size_t _raw;
-        size_t _column;
-
-        public:
-        @property{
-            auto raw(){return _raw;}
-            auto column(){return _column;}
-        }
-
-        this(size_t _raw,size_t _column){
-            this._raw=_raw;
-            this._column=_column;
+    class NoMatrixException:Exception{
+        this(Matrix matrix){
+            import std.conv:to;
+            auto msg="\nMatrix("~matrix.raw.to!string~", "~matrix.column.to!string~
+                ") doesn't exists in squares.\nCheck Matrix exists by using Board!(yourType).exists(Matrix) .";
+            super(msg);
         }
     }
 
-    this(TMP init_set){
-        import std.algorithm;
-        init_set.each!(e=>_squares[e[0]]=e[1]);
-        _exists_squares=init_set.map!(e=>e[0]).array;
+    this(TMP[] init_set){
+        foreach(e;init_set){
+            _squares[e[0]]=e[1];
+            _exists_squares~=e[0];
+        }
     }
 
-    auto exists=(Matrix matrix)=>(matrix in _exists_squares)!=null?true:false;
+    auto exists(Matrix matrix){
+        return (matrix in _squares)!=null?true:false;
+    }
 
     void print(dchar delegate(T_Piece) pieceToDchar){
-        import std.stdio;
         if(_exists_squares.length==0){
             "No Squares in Board.".writeln;
         }else{
-            //TODO
+            this._writeln("TEST!");
         }
     }
+}
+
+enum CharColor:string{
+    black="\033[30m",
+    red="\033[31m",
+    green="\033[32m",
+    yellow="\033[33m",
+    blue="\033[34m",
+    magent="\033[35m",
+    cyan="\033[36m",
+    white="\033[37m"
+}
+
+enum BackColor:string{
+    black="\033[40m",
+    red="\033[41m",
+    green="\033[42m",
+    yellow="\033[43m",
+    blue="\033[44m",
+    magent="\033[45m",
+    cyan="\033[46m",
+    white="\033[47m"
 }

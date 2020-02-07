@@ -1,27 +1,17 @@
 import std.stdio;
+import std.typecons;
 
 import board.base;
 
 void main(){
-    auto board=new Board!(
-{
-    size_t raw_max=8;
-    size_t column_max=5;
-    enum status{
-        Black,
-        White,
-        Empty
-    }
-}
-);
+    alias Fuga=Board!(Piece);
+    Fuga fuga=new Fuga([tuple(Matrix(3,2),Piece.empty)]);
+    fuga.print(hoge=>'a');
+    fuga.square(Matrix(3,2)).writeln;
 }
 
-static class MyRule{
-    size_t raw_max=8;
-    size_t column_max=5;
-    enum status{
-        Black,
-        White,
-        Empty
-    }
+enum Piece{
+    black,
+    white,
+    empty
 }
