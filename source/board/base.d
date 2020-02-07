@@ -21,6 +21,14 @@ class Board(T_Piece){
     @property{
         auto squares(){return _squares;}
         auto exists_squares(){return _exists_squares;}
+
+        auto square(Matrix matrix){
+            if(!this.exists(matrix)){
+                return null;
+            }else{
+                return _squares[matrix];
+            }
+        }
     }
 
     struct Matrix{
@@ -45,6 +53,8 @@ class Board(T_Piece){
         init_set.each!(e=>_squares[e[0]]=e[1]);
         _exists_squares=init_set.map!(e=>e[0]).array;
     }
+
+    auto exists=(Matrix matrix)=>(matrix in _exists_squares)!=null?true:false;
 
     void print(dchar delegate(T_Piece) pieceToDchar){
         import std.stdio;
