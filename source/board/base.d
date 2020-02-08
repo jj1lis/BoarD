@@ -2,75 +2,136 @@ module board.base;
 
 import std.typecons;
 
-struct Matrix{
+struct Coordinate{
     private:
-    size_t _raw;
-    size_t _column;
+        int _raw;
+        int _column;
 
     public:
-    @property{
-        auto raw(){return _raw;}
-        auto column(){return _column;}
-    }
+        @property{
+            auto raw(){return _raw;}
+            auto column(){return _column;}
+        }
 
-    this(size_t _raw,size_t _column){
-        this._raw=_raw;
-        this._column=_column;
-    }
+        this(int _raw,int _column){
+            this._raw=_raw;
+            this._column=_column;
+        }
 }
 
-class Board(T_Piece){
+struct Set(T){
+    private:
+        T[] _set;
+
+    public:
+        @property{
+            inout array(){return _set;}
+            inout length(){return _set.length;}
+            auto clear(){_set.length=0;}
+        }
+
+        auto insert(T t){
+            if(!isIncluded(t)){
+                _set~=t;
+            }
+        }
+
+        auto remove(T t){
+            import std.algorithm,std.array;
+            _set=_set.filter!(s=>s!=t).array;
+        }
+
+        auto isIncluded(T t){
+            foreach(e;_set){
+                if(e==t)return true;
+            }
+            return false;
+        }
+}
+
+class Board(T_Piece,alias empty)if(is(typeof(empty)==T_Piece)){
     import std.stdio;
 
     private:
-    T_Piece[Matrix] _squares;
-    Matrix[] _exists_squares;
+    T_Piece[Coordinate] _squares;
+    Set!(Coordinate) _exists_squares;
 
     BackColor _back_color=BackColor.green;
     CharColor _char_color=CharColor.black;
+
     auto _writeln(string text){
         writeln(_back_color~_char_color~text~"\033[0m");
     }
 
     public:
-
-    alias TMP=Tuple!(Matrix,T_Piece);//Tuple of Matrix and Piece
-
-    invariant(_squares.length==_exists_squares.length);
+    import core.exception;
 
     @property{
         auto squares(){return _squares;}
         auto exists_squares(){return _exists_squares;}
-        auto square(Matrix matrix){
-            import core.exception;
+        auto square(Coordinate coor){
             try{
-                return _squares[matrix];
+                return _squares[coor];
             }catch(RangeError re){
-                throw new NoMatrixException(matrix);
+                throw new NoCoordinateException(coor);
             }
         }
         auto back_color(BackColor c){_back_color=c;}
         auto char_color(CharColor c){_char_color=c;}
     }
 
-    class NoMatrixException:Exception{
-        this(Matrix matrix){
+    invariant(_squares.length==_exists_squares.length);
+
+    class NoCoordinateException:Exception{
+        this(Coordinate coor){
             import std.conv:to;
-            auto msg="\nMatrix("~matrix.raw.to!string~", "~matrix.column.to!string~
-                ") doesn't exists in squares.\nCheck Matrix exists by using Board!(yourType).exists(Matrix) .";
+            auto msg="\nCoordinate("~coor.raw.to!string~", "~coor.column.to!string~
+                ") doesn't exists in squares.\nCheck Coordinate exists by using Board!(yourType).existSquare(Coordinate) .";
             super(msg);
         }
     }
 
-    this(TMP[] init_set){
-        foreach(e;init_set){
-            _squares[e[0]]=e[1];
-            _exists_squares~=e[0];
+    this(Tuple!(Coordinate,T_Piece)[] init_set){
+        foreach(s;init_set){
+            this._squares[s[0]]=s[1];
+            this._exists_squares.insert(s[0]);
         }
     }
 
-    auto exists(Matrix matrix){
-        return (matrix in _squares)!=null?true:false;
+    this(Coordinate[] coors,T_Piece init_default,Tuple!(Coordinate,T_Piece)[] init_specified=[]){
+        foreach(coor;coors){
+            this._squares[coor]=init_default;
+            this._exists_squares.insert(coor);
+        }
+
+        if(init_specified.length!=0){
+            foreach(s;init_specified){
+                this._squares[s[0]]=s[1];
+                this._exists_squares.insert(s[0]);
+            }
+        }
+    }
+
+    auto put(Coordinate coor,T_Piece piece){
+        try{
+            _squares[coor]=piece;
+        }catch(RangeError re){
+            throw new NoCoordinateException(coor);
+        }
+    }
+
+    auto pick(Coordinate coor){
+        try{
+            auto swap=_squares[coor];
+            _squares[coor]=empty;
+            return swap;
+        }catch(RangeError re){
+            throw new NoCoordinateException(coor);
+        }
+    }
+
+    auto existSquare(Coordinate coor){
+        return (coor in _squares)!=null?true:false;
     }
 
     void print(dchar delegate(T_Piece) pieceToDchar){
