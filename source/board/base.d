@@ -61,12 +61,18 @@ class Board(alias empty){
 
     T_Piece[Coordinate] _squares;
     Set!(Coordinate) _exists_squares;
+    enum color_reset="\033[0m";
 
     BackColor _back_color=BackColor.green;
     CharColor _char_color=CharColor.white;
 
+    auto _write(string text){
+        write(_back_color~_char_color~text~color_reset);
+
+    }
+
     auto _writeln(string text){
-        writeln(_back_color~_char_color~text~"\033[0m");
+        writeln(_back_color~_char_color~text~color_reset);
     }
 
 
@@ -84,7 +90,9 @@ class Board(alias empty){
             }
         }
         auto back_color(BackColor c){_back_color=c;}
+        auto back_color(){return _back_color;}
         auto char_color(CharColor c){_char_color=c;}
+        auto char_color(){return _char_color;}
     }
 
     invariant(_squares.length==_exists_squares.length);
@@ -187,10 +195,19 @@ class Board(alias empty){
                             (i){
                                 string str;
                                 if(existSquare(Coordinate(i,column))){
-                                    auto space_front=lens_raw[i]/2;
+                                    import std.regex;
+                                    auto piece=pieceToDchar(_squares[Coordinate(i,column)]);
+                                    //typeof(piece).stringof.writeln;
+                                    //auto piece=" ";
+                                    //auto tmp=(lens_raw[i]-piece.splitter("\033").array.length+1)/2;
+                                    auto space_front=(lens_raw[i]-piece.replace(regex("\033.*m","g"),"").length)/2;
+                                    //auto space_front=(lens_raw[i]-(piece.length)+1)/2;
+                                        //"line".writeln;
+                                        //writefln("space_front:%s piece.length:%s space_front+piece.length:%s",space_front,piece.length,space_front+piece.length);
+                                        //writeln(lens_raw[i]-(space_front+piece.length));
                                     str~=" ".repeat(space_front).join~
-                                        pieceToDchar(_squares[Coordinate(i,column)]).to!string~
-                                        " ".repeat(lens_raw[i]%2==0?space_front-1:space_front).join;
+                                        piece~back_color~char_color~
+                                        " ".repeat(lens_raw[i]-space_front-1).join;
                                 }else{
                                     str~=" ".repeat(lens_raw[i]).join;
                                 }
@@ -199,6 +216,7 @@ class Board(alias empty){
                                 }else{
                                     str~="|";
                                 }
+                                //"return str".writeln;
                                 return str;
                             }).join);
                 _writeln(" ".repeat(lenmax_column).join~"|"~iota(raw_sorted.fold!min,raw_sorted.fold!max+1).map!(

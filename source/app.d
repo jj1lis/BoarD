@@ -8,8 +8,8 @@ void main(){
 
     auto othello_coor(){
         Coordinate[] coors;
-        foreach(raw;[0,2,3,4,6,7]){
-            foreach(column;[1,3,4,6]){
+        foreach(raw;0..8){
+            foreach(column;0..8){
                 coors~=Coordinate(raw,column);
             }
         }
@@ -18,15 +18,18 @@ void main(){
     auto board=new Othello(othello_coor,Piece.empty,
             [tuple(Coordinate(3,3),Piece.white),tuple(Coordinate(3,4),Piece.black),
             tuple(Coordinate(4,3),Piece.black),tuple(Coordinate(4,4),Piece.white)]);
+    board.back_color=BackColor.yellow;
+    board.char_color=CharColor.black;
+
 
     auto p2d=(Piece p){
         switch(p){
             case Piece.black:
-                return '@';
+                return BackColor.black~" ";
             case Piece.white:
-                return '*';
+                return BackColor.white~" ";
             case Piece.empty:
-                return ' ';
+                return " ";
             default:
                 assert(0);
         }
