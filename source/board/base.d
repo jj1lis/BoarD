@@ -1,5 +1,8 @@
 module board.base;
 
+import std.algorithm;
+import std.range;
+import std.conv:to;
 import std.typecons;
 
 struct Coordinate{
@@ -37,7 +40,7 @@ struct Set(T){
         }
 
         auto remove(T t){
-            import std.algorithm,std.array;
+            import std.array;
             _set=_set.filter!(s=>s!=t).array;
         }
 
@@ -49,19 +52,23 @@ struct Set(T){
         }
 }
 
-class Board(T_Piece,alias empty)if(is(typeof(empty)==T_Piece)){
+
+class Board(alias empty){
     import std.stdio;
 
     private:
+    alias T_Piece=typeof(empty);
+
     T_Piece[Coordinate] _squares;
     Set!(Coordinate) _exists_squares;
 
     BackColor _back_color=BackColor.green;
-    CharColor _char_color=CharColor.black;
+    CharColor _char_color=CharColor.white;
 
     auto _writeln(string text){
         writeln(_back_color~_char_color~text~"\033[0m");
     }
+
 
     public:
     import core.exception;
@@ -84,7 +91,6 @@ class Board(T_Piece,alias empty)if(is(typeof(empty)==T_Piece)){
 
     class NoCoordinateException:Exception{
         this(Coordinate coor){
-            import std.conv:to;
             auto msg="\nCoordinate("~coor.raw.to!string~", "~coor.column.to!string~
                 ") doesn't exists in squares.\nCheck Coordinate exists by using Board!(yourType).existSquare(Coordinate) .";
             super(msg);
@@ -98,7 +104,7 @@ class Board(T_Piece,alias empty)if(is(typeof(empty)==T_Piece)){
         }
     }
 
-    this(Coordinate[] coors,T_Piece init_default,Tuple!(Coordinate,T_Piece)[] init_specified=[]){
+    this(Coordinate[] coors,T_Piece init_default=empty,Tuple!(Coordinate,T_Piece)[] init_specified=[]){
         foreach(coor;coors){
             this._squares[coor]=init_default;
             this._exists_squares.insert(coor);
@@ -130,15 +136,88 @@ class Board(T_Piece,alias empty)if(is(typeof(empty)==T_Piece)){
         }
     }
 
-    auto existSquare(Coordinate coor){
-        return (coor in _squares)!=null?true:false;
+    auto isEmpty(Coordinate coor){
+        try{
+            return _squares[coor]==empty;
+        }catch(RangeError re){
+            throw new NoCoordinateException(coor);
+        }
     }
 
-    void print(dchar delegate(T_Piece) pieceToDchar){
+    auto existSquare(Coordinate coor){
+        return _exists_squares.isIncluded(coor);
+    }
+
+    void print(alias pieceToDchar=(p){return "@";})(lazy size_t width=5){
         if(_exists_squares.length==0){
             "No Squares in Board.".writeln;
         }else{
-            this._writeln("TEST!");
+            auto raw_sorted=_exists_squares.array.map!(c=>c.raw).array.sort;
+            auto column_sorted=_exists_squares.array.map!(c=>c.column).array.sort;
+            auto lens_raw=iota(raw_sorted.fold!min,raw_sorted.fold!max+1).map!(i=>i.to!string.length>width?i:width);
+            auto lenmax_column=iota(column_sorted.fold!min,column_sorted.fold!max+1).map!(i=>i.to!string.length).fold!max;
+
+            _writeln(" ".repeat(lenmax_column).join~" "~iota(raw_sorted.fold!min,raw_sorted.fold!max+1).map!(
+                        (i){
+                            auto len=i.to!string.length;
+                            if(width>len){
+                                if((width-len)%2==0){
+                                    auto space=" ".repeat((width-len)/2).join;
+                                    return space~i.to!string~space;
+                                }else{
+                                    auto space=" ".repeat((width-len)/2).join;
+                                    return space~i.to!string~space~" ";
+                                }
+                            }else{
+                                return i.to!string;
+                            }
+                        }).join(" ")~" ");
+            _writeln(" ".repeat(lenmax_column).join~"+"~iota(raw_sorted.fold!min,raw_sorted.fold!max+1).map!(i=>"-".repeat(lens_raw[i]).join).join("+")~"+");
+            foreach(column;iota(column_sorted.fold!min,column_sorted.fold!max+1)){
+                _writeln(" ".repeat(lenmax_column).join~"|"~iota(raw_sorted.fold!min,raw_sorted.fold!max+1).map!(
+                            (i){
+                                if(!existSquare(Coordinate(i,column))&&!existSquare(Coordinate(i+1,column))){
+                                    return " ".repeat(lens_raw[i]).join~" ";
+                                }else{
+                                    return " ".repeat(lens_raw[i]).join~"|";
+                                }
+                            }).join);
+                _writeln(" ".repeat(lenmax_column-column.to!string.length).join~column.to!string~"|"~
+                        iota(raw_sorted.fold!min,raw_sorted.fold!max+1).map!(
+                            (i){
+                                string str;
+                                if(existSquare(Coordinate(i,column))){
+                                    auto space_front=lens_raw[i]/2;
+                                    str~=" ".repeat(space_front).join~
+                                        pieceToDchar(_squares[Coordinate(i,column)]).to!string~
+                                        " ".repeat(lens_raw[i]%2==0?space_front-1:space_front).join;
+                                }else{
+                                    str~=" ".repeat(lens_raw[i]).join;
+                                }
+                                if(!existSquare(Coordinate(i,column))&&!existSquare(Coordinate(i+1,column))){
+                                    str~=" ";
+                                }else{
+                                    str~="|";
+                                }
+                                return str;
+                            }).join);
+                _writeln(" ".repeat(lenmax_column).join~"|"~iota(raw_sorted.fold!min,raw_sorted.fold!max+1).map!(
+                            (i){
+                                if(!existSquare(Coordinate(i,column))&&!existSquare(Coordinate(i+1,column))){
+                                    return " ".repeat(lens_raw[i]).join~" ";
+                                }else{
+                                    return " ".repeat(lens_raw[i]).join~"|";
+                                }
+                            }).join);
+                _writeln(" ".repeat(lenmax_column).join~"+"~iota(raw_sorted.fold!min,raw_sorted.fold!max+1).map!(
+                            (i){
+                                if(!existSquare(Coordinate(i,column))&&!existSquare(Coordinate(i,column+1))){
+                                    return " ".repeat(lens_raw[i]).join~"+";
+                                }else{
+                                    return "-".repeat(lens_raw[i]).join~"+";
+                                }
+                            }).join);
+            }
         }
     }
 }
