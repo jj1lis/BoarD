@@ -1,50 +1,19 @@
 import std;
 
 void main(){
-    string reg="I am \033[40m !";
-    //(reg~"\033[0m").writeln;
-    //reg.length.writeln;
-    //reg=replace(reg,regex("\033.*m","g"),"");
-    //reg.writeln;
-    reg.splitter("\033").writeln;
-    reg.splitter("\033").array.length.writeln;
-    reg.replace(regex("\033.*m","g"),"").writeln;
-}
+    //string reg="I am \033[40m !";
+    //reg.splitter("\033").writeln;
+    //reg.splitter("\033").array.length.writeln;
+    //reg.replace(regex("\033.*m","g"),"").writeln;
 
-enum A{
-    a="aa",
-    b="bb",
-}
+    int c=2;
 
-auto center(long i,size_t width){
-    auto len=i.to!string.length;
-    if(width>len){
-        if((width-len)%2==0){
-            auto space=" ".repeat((width-len)/2).join;
-            return space~i.to!string~space;
-        }else{
-            auto space=" ".repeat((width-len)/2).join;
-            return space~i.to!string~space~" ";
-        }
-    }else{
-        return i.to!string;
-    }
-}
+    auto func1=(int a){
+        return a+2;
+    };
+    auto func2=(int b){
+        return b+c;
+    };
 
-auto ENTO(EN x){
-    switch(x){
-        case EN.a:
-            return "aa";
-        case EN.b:
-            return "bb";
-        case EN.c:
-            return "cc";
-        default:
-            assert(0);
-    }
-}
-enum EN{
-    a,
-    b,
-    c
+    writefln("%s func1(1)=%s, %s func2(1)=%s",typeof(func1).stringof,func1(1),typeof(func2).stringof,func2(1));
 }

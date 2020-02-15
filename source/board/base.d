@@ -22,6 +22,13 @@ struct Coordinate{
             this._raw=_raw;
             this._column=_column;
         }
+
+        Coordinate opBinary(string op)(Coordinate val)if(op=="+"){
+            return Coordinate(this._raw+val.raw,this._column+val.column);
+        }
+        Coordinate opBinary(string op)(Coordinate val)if(op=="-"){
+            return Coordinate(this._raw-val.raw,this._column-val.column);
+        }
 }
 
 struct Set(T){
@@ -77,7 +84,7 @@ class Board(alias empty,Camp){
 
     private:
 
-    Tuple!(Coordinate,"coor",Piece,"piece")[Coordinate] _squares;
+    Square[Coordinate] _squares;
     Set!(Coordinate) _exists_squares;
     enum color_reset="\033[0m";
 
@@ -96,8 +103,8 @@ class Board(alias empty,Camp){
 
     public:
     import core.exception;
-    import app;
     alias T_Piece=typeof(empty);
+    //alias Square=Tuple!(Coordinate,"coordinate",Piece,"piece");
 
     @property{
         auto squares(){return _squares;}
@@ -125,47 +132,65 @@ class Board(alias empty,Camp){
         }
     }
 
+    struct Square{
+        private:
+        Coordinate _coor;
+        Piece _piece;
+
+        public:
+        @property{
+            auto coordinate(){return _coor;}
+            auto piece(){return _piece;}
+            auto piece(Piece p){_piece=p;}
+        }
+        
+        this(Coordinate _coor,Piece _piece){
+            this._coor=_coor;
+            this._piece=_piece;
+        }
+    }
+
     struct Piece{
         private:
-            T_Piece _piece;
+            T_Piece _type;
             Player!Camp _master;
         public:
             @property{
-                auto piece(){return _piece;}
+                auto type(){return _type;}
                 auto master(){return _master;}
             }
 
-            this(T_Piece _piece,Player!Camp _master){
-                this._piece=_piece;
+            this(T_Piece _type,Player!Camp _master){
+                this._type=_type;
                 this._master=_master;
             }
 
-            this(T_Piece _piece){
-                if(_piece==empty){
-                    this._piece=empty;
+            this(T_Piece _type){
+                if(_type==empty){
+                    this._type=empty;
                 }else{
                     throw new Exception("TODO");//TODO
                 }
             }
     }
 
-    this(Tuple!(Coordinate,Piece)[] init_set){
+    this(Square[] init_set){
         foreach(s;init_set){
-            this._squares[s[0]]=s;
-            this._exists_squares.insert(s[0]);
+            this._squares[s.coordinate]=s;
+            this._exists_squares.insert(s.coordinate);
         }
     }
 
-    this(Coordinate[] coors,Piece init_default=Piece(empty),Tuple!(Coordinate,Piece)[] init_specified=[]){
+    this(Coordinate[] coors,Piece init_default=Piece(empty),Square[] init_specified=[]){
         foreach(coor;coors){
-            this._squares[coor]=tuple(coor,init_default);
+            this._squares[coor]=Square(coor,init_default);
             this._exists_squares.insert(coor);
         }
 
         if(init_specified.length!=0){
             foreach(s;init_specified){
-                this._squares[s[0]]=s;
-                this._exists_squares.insert(s[0]);
+                this._squares[s.coordinate]=s;
+                this._exists_squares.insert(s.coordinate);
             }
         }
     }
@@ -180,7 +205,7 @@ class Board(alias empty,Camp){
 
     auto pick(Coordinate coor){
         try{
-            auto swap=_squares[coor];
+            auto swap=_squares[coor].piece;
             _squares[coor].piece=Piece(empty);
             return swap;
         }catch(RangeError re){
@@ -190,7 +215,7 @@ class Board(alias empty,Camp){
 
     auto isEmpty(Coordinate coor){
         try{
-            return _squares[coor].piece.piece==empty;
+            return _squares[coor].piece.type==empty;
         }catch(RangeError re){
             throw new NoCoordinateException(coor);
         }
@@ -243,7 +268,7 @@ class Board(alias empty,Camp){
                             string str;
                             if(existSquare(Coordinate(i,column))){
                             import std.regex;
-                            auto piece=PieceToString(_squares[Coordinate(i,column)].piece.piece);
+                            auto piece=PieceToString(_squares[Coordinate(i,column)].piece.type);
                             //typeof(piece).stringof.writeln;
                             //auto piece=" ";
                             //auto tmp=(lens_raw[i]-piece.splitter("\033").array.length+1)/2;
